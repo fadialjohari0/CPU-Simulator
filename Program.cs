@@ -1,6 +1,8 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Newtonsoft.Json;
 
 namespace CPU
 {
@@ -8,11 +10,85 @@ namespace CPU
     {
         static void Main(string[] args)
         {
-            Console.Write("Enter number of processors: ");
-            int numOfProcessors = int.Parse(Console.ReadLine());
+            // Reads JSON file and creates a list (to add the tasks to it through listsOfTasks).
+            IFileReader tasksLoader = new TasksLoader();
+            // This is a List that holds the JSON Tasks, using DeserializeObject as a for loop.
+            List<Task> listOfTasks = tasksLoader.ReadTasksFromJson("Tasks.Json");
 
-            List<Processor> listOfProcessors = new List<Processor>();
+            /********************************************************************************/
 
+            // Static function to get the input number of processors from the user.
+            IUserInputHandler userInputHandler = new UserInputHandler();
+            int numOfProcessors = userInputHandler.GetNumOfProcessorsFromUser();
+
+            /********************************************************************************/
+
+            // A List of processors depending on the `numOfProcessors` by the user.
+            IProcessorInitializer processorInitializer = new ProcessorInitializer();
+            List<Processor> listOfProcessors = processorInitializer.InitializeProcessors(numOfProcessors);
+
+            /********************************************************************************/
+
+            // Sending the `listOfTasks` to `taskPriorityHandler` to separate the tasks by priority
+            TaskPriorityHandler taskPriorityHandler = new TaskPriorityHandler();
+            taskPriorityHandler.SeparateTasksByPriority(listOfTasks);
+
+            // Two Queues for High and Low priority tasks.
+            Queue<Task> highPriorityTasks = taskPriorityHandler.GetHighPriorityTasks();
+            Queue<Task> lowPriorityTasks = taskPriorityHandler.GetLowPriorityTasks();
+
+
+            /********************************************************************************/
+
+            Scheduler scheduler = new Scheduler();
+            scheduler.AssignTasksToProcessors(listOfProcessors, highPriorityTasks, lowPriorityTasks);
+
+            /********************************************************************************/
+
+
+
+        }
+    }
+
+
+    interface IFileReader
+    {
+        List<Task> ReadTasksFromJson(string filePath);
+    }
+
+    public class TasksLoader : IFileReader
+    {
+        public List<Task> ReadTasksFromJson(string filePath)
+        {
+            try
+            {
+                string fileContent = File.ReadAllText(filePath);
+                return JsonConvert.DeserializeObject<List<Task>>(fileContent);
+            }
+            catch (FileNotFoundException)
+            {
+                Console.WriteLine($"File not found: {filePath}");
+            }
+            catch (JsonException)
+            {
+                Console.WriteLine($"Invalid JSON format in file: {filePath}");
+            }
+
+            return new List<Task>();
+        }
+    }
+
+    interface IProcessorInitializer
+    {
+        List<Processor> InitializeProcessors(int numOfProcessors);
+    }
+
+    public class ProcessorInitializer : IProcessorInitializer
+    {
+        List<Processor> processors = new List<Processor>();
+
+        public List<Processor> InitializeProcessors(int numOfProcessors)
+        {
             for (int i = 0; i < numOfProcessors; i++)
             {
                 Processor processor = new Processor()
@@ -20,103 +96,76 @@ namespace CPU
                     Id = $"P{i + 1}",
                     State = ProcessorState.IDLE
                 };
-                listOfProcessors.Add(processor);
+
+                processors.Add(processor);
             }
 
+            return processors;
+        }
+    }
 
+    public class TaskPriorityHandler
+    {
+        private Queue<Task> highPriorityTasks = new Queue<Task>();
+        private Queue<Task> lowPriorityTasks = new Queue<Task>();
 
+        public void SeparateTasksByPriority(List<Task> tasks)
+        {
+            tasks = tasks.OrderBy(task => task.RequestedTime).ToList();
 
-            /***************************************************/
-
-            List<Task> listOfTasks = new List<Task>();
-
-            Queue<Task> HighPriorityTasks = new Queue<Task>();
-            Queue<Task> LowPriorityTasks = new Queue<Task>();
-
-            string fileContent = File.ReadAllText("Tasks.Json");
-            JArray jsonArray = JArray.Parse(fileContent);
-
-            foreach (JObject obj in jsonArray)
-            {
-                string id = obj["Id"]!.ToString();
-                int creationTime = int.Parse(obj["CreationTime"]!.ToString());
-                int requestedTime = int.Parse(obj["RequestedTime"]!.ToString());
-                string priority = obj["Priority"]!.ToString();
-
-                Task task = new Task()
-                {
-                    Id = id,
-                    CreationTime = creationTime,
-                    RequestedTime = requestedTime,
-                    Priority = priority
-                };
-
-                listOfTasks.Add(task);
-            }
-
-            foreach (Task task in listOfTasks)
+            foreach (Task task in tasks)
             {
                 if (task.Priority == "High")
-                    HighPriorityTasks.Enqueue(task);
-                else
-                    LowPriorityTasks.Enqueue(task);
-            }
-            foreach (var n in HighPriorityTasks)
-            {
-
-                foreach (Processor processor1 in listOfProcessors)
                 {
-                    if (processor1.State == ProcessorState.IDLE)
-                    {
-                        processor1.AssignTask(n);
-                        break;
-                    }
+                    highPriorityTasks.Enqueue(task);
+                }
+                else
+                {
+                    lowPriorityTasks.Enqueue(task);
                 }
             }
-
-            foreach (var b in listOfProcessors)
-            {
-                Console.WriteLine(b.State);
-            }
-
         }
 
-    }
+        public Queue<Task> GetLowPriorityTasks() => lowPriorityTasks;
+        public Queue<Task> GetHighPriorityTasks() => highPriorityTasks;
 
-
-    public class Task
-    {
-        public string? Id { get; set; }
-        public int CreationTime { get; set; }
-        public int RequestedTime { get; set; }
-        public int CompletionTime { get; set; }
-        public string? Priority { get; set; }
-        public TaskState State { get; set; }
-
-    }
-
-    public class Processor
-    {
-        public string? Id { get; set; }
-        public ProcessorState State { get; set; }
-        public Task CurrentTask { get; set; }
-
-        public void AssignTask(Task task)
-        {
-            CurrentTask = task;
-            State = ProcessorState.BUSY;
-        }
     }
 
     public class Scheduler
     {
+        int clockCycle = 0;
+        public void AssignTasksToProcessors(List<Processor> listOfProcessors, Queue<Task> highPriorityTasks, Queue<Task> lowPriorityTasks)
+        {
+            foreach (var processor in listOfProcessors)
+            {
+                if (processor.State == ProcessorState.IDLE)
+                {
+                    if (highPriorityTasks.Count > 0)
+                    {
+                        Task task = highPriorityTasks.Dequeue();
+                        processor.AssignTask(task);
+                        processor.State = ProcessorState.BUSY;
+                        Console.WriteLine($"{task.Id} was added to processor {processor.Id} at clock cycle {clockCycle}");
+                    }
+                    else if (lowPriorityTasks.Count > 0)
+                    {
+                        Task task = lowPriorityTasks.Dequeue();
+                        processor.AssignTask(task);
+                        processor.State = ProcessorState.BUSY;
+                        Console.WriteLine($"{task.Id} was added to processor {processor.Id} at clock cycle {clockCycle}");
 
+                    }
+                    else
+                    {
+                        processor.State = ProcessorState.IDLE;
+                    }
+                }
+                clockCycle++;
+            }
+        }
     }
 
-    public class Clock
-    {
 
-    }
     public enum TaskState
     {
         WAITING,
@@ -129,5 +178,4 @@ namespace CPU
         BUSY,
         IDLE
     }
-
 }
