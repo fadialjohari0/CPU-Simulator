@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Newtonsoft.Json;
 
 namespace CPU
 {
@@ -29,20 +28,7 @@ namespace CPU
 
             /********************************************************************************/
 
-            // Sending the `listOfTasks` to `taskPriorityHandler` to separate the tasks by priority
-            // TaskPriorityHandler taskPriorityHandler = new TaskPriorityHandler();
-            // taskPriorityHandler.SeparateTasksByPriority(listOfTasks);
-
             // Two Queues for High and Low priority tasks.
-            // Queue<Task> highPriorityTasks = taskPriorityHandler.GetHighPriorityTasks();
-            // Queue<Task> lowPriorityTasks = taskPriorityHandler.GetLowPriorityTasks();
-
-
-            /********************************************************************************/
-
-
-
-
             Queue<Task> highPriorityTask = new Queue<Task>();
             Queue<Task> lowPriorityTask = new Queue<Task>();
 
@@ -51,7 +37,10 @@ namespace CPU
 
             /********************************************************************************/
 
+
+
             Scheduler scheduler = new Scheduler();
+            scheduler.AssignTasksToProcessors(listOfTasks, highPriorityTask, lowPriorityTask, listOfProcessors, ref clockCycle);
 
             foreach (var i in highPriorityTask)
             {
@@ -68,32 +57,7 @@ namespace CPU
     }
 
 
-    interface IFileReader
-    {
-        List<Task> ReadTasksFromJson(string filePath);
-    }
 
-    public class TasksLoader : IFileReader
-    {
-        public List<Task> ReadTasksFromJson(string filePath)
-        {
-            try
-            {
-                string fileContent = File.ReadAllText(filePath);
-                return JsonConvert.DeserializeObject<List<Task>>(fileContent);
-            }
-            catch (FileNotFoundException)
-            {
-                Console.WriteLine($"File not found: {filePath}");
-            }
-            catch (JsonException)
-            {
-                Console.WriteLine($"Invalid JSON format in file: {filePath}");
-            }
-
-            return new List<Task>();
-        }
-    }
 
     interface IProcessorInitializer
     {
@@ -157,7 +121,36 @@ namespace CPU
 
     public class Scheduler
     {
+        public void AssignTasksToProcessors(List<Task> tasks, Queue<Task> highPriorityTasks, Queue<Task> lowPriorityTasks, List<Processor> processors, ref int clockCycle)
+        {
+            tasks = tasks.OrderBy(task => task.RequestedTime).ToList();
 
+            highPriorityTasks.Clear();
+            lowPriorityTasks.Clear();
+
+            foreach (Task task in tasks)
+            {
+                if (task.Priority == "High")
+                {
+                    highPriorityTasks.Enqueue(task);
+                }
+                else
+                {
+                    lowPriorityTasks.Enqueue(task);
+                }
+            }
+
+            while (highPriorityTasks.Count > 0 || lowPriorityTasks.Count > 0)
+            {
+                foreach (Processor processor in processors)
+                {
+                    if (processor.State == ProcessorState.IDLE)
+                    {
+
+                    }
+                }
+            }
+        }
     }
 
     public enum TaskState
