@@ -30,24 +30,41 @@ namespace CPU
             /********************************************************************************/
 
             // Sending the `listOfTasks` to `taskPriorityHandler` to separate the tasks by priority
-            TaskPriorityHandler taskPriorityHandler = new TaskPriorityHandler();
-            taskPriorityHandler.SeparateTasksByPriority(listOfTasks);
+            // TaskPriorityHandler taskPriorityHandler = new TaskPriorityHandler();
+            // taskPriorityHandler.SeparateTasksByPriority(listOfTasks);
 
             // Two Queues for High and Low priority tasks.
-            Queue<Task> highPriorityTasks = taskPriorityHandler.GetHighPriorityTasks();
-            Queue<Task> lowPriorityTasks = taskPriorityHandler.GetLowPriorityTasks();
+            // Queue<Task> highPriorityTasks = taskPriorityHandler.GetHighPriorityTasks();
+            // Queue<Task> lowPriorityTasks = taskPriorityHandler.GetLowPriorityTasks();
 
+
+            /********************************************************************************/
+
+
+
+
+            Queue<Task> highPriorityTask = new Queue<Task>();
+            Queue<Task> lowPriorityTask = new Queue<Task>();
+
+            TaskPriorityHandler taskPriorityHandler = new TaskPriorityHandler();
+            taskPriorityHandler.SeparateTasksByPriority(listOfTasks, highPriorityTask, lowPriorityTask, ref clockCycle);
 
             /********************************************************************************/
 
             Scheduler scheduler = new Scheduler();
-            scheduler.AssignTasksToProcessors(listOfProcessors, highPriorityTasks, lowPriorityTasks);
 
-            /********************************************************************************/
+            foreach (var i in highPriorityTask)
+            {
+                Console.WriteLine($"High priority task id: {i.Id}");
+            }
 
-
-
+            foreach (var x in lowPriorityTask)
+            {
+                Console.WriteLine($"Low priority task id: {x.Id}");
+            }
         }
+
+        static int clockCycle = 0;
     }
 
 
@@ -106,58 +123,29 @@ namespace CPU
 
     public class TaskPriorityHandler
     {
-        private Queue<Task> highPriorityTasks = new Queue<Task>();
-        private Queue<Task> lowPriorityTasks = new Queue<Task>();
-
-        public void SeparateTasksByPriority(List<Task> tasks)
+        public void SeparateTasksByPriority(List<Task> tasks, Queue<Task> highPriorityTasks, Queue<Task> lowPriorityTasks, ref int clockCycle)
         {
-            tasks = tasks.OrderBy(task => task.RequestedTime).ToList();
+            // tasks = tasks.OrderBy(task => task.CreationTime).ToList();
 
-            foreach (Task task in tasks)
+            while (!(tasks.Count == (highPriorityTasks.Count + lowPriorityTasks.Count)))
             {
-                if (task.Priority == "High")
+                foreach (Task task in tasks)
                 {
-                    highPriorityTasks.Enqueue(task);
-                }
-                else
-                {
-                    lowPriorityTasks.Enqueue(task);
-                }
-            }
-        }
-
-        public Queue<Task> GetLowPriorityTasks() => lowPriorityTasks;
-        public Queue<Task> GetHighPriorityTasks() => highPriorityTasks;
-
-    }
-
-    public class Scheduler
-    {
-        int clockCycle = 0;
-        public void AssignTasksToProcessors(List<Processor> listOfProcessors, Queue<Task> highPriorityTasks, Queue<Task> lowPriorityTasks)
-        {
-            foreach (var processor in listOfProcessors)
-            {
-                if (processor.State == ProcessorState.IDLE)
-                {
-                    if (highPriorityTasks.Count > 0)
+                    if (task.CreationTime == clockCycle)
                     {
-                        Task task = highPriorityTasks.Dequeue();
-                        processor.AssignTask(task);
-                        processor.State = ProcessorState.BUSY;
-                        Console.WriteLine($"{task.Id} was added to processor {processor.Id} at clock cycle {clockCycle}");
-                    }
-                    else if (lowPriorityTasks.Count > 0)
-                    {
-                        Task task = lowPriorityTasks.Dequeue();
-                        processor.AssignTask(task);
-                        processor.State = ProcessorState.BUSY;
-                        Console.WriteLine($"{task.Id} was added to processor {processor.Id} at clock cycle {clockCycle}");
+                        if (task.Priority == "High")
+                        {
+                            highPriorityTasks.Enqueue(task);
+                            task.State = TaskState.WAITING;
+                            Console.WriteLine($"Task {task.Id} is added to the Queue at clock cycle: {clockCycle}.");
+                        }
+                        else if (task.Priority == "Low")
+                        {
+                            lowPriorityTasks.Enqueue(task);
+                            task.State = TaskState.WAITING;
+                            Console.WriteLine($"Task {task.Id} is added to the Queue at clock cycle: {clockCycle}.");
 
-                    }
-                    else
-                    {
-                        processor.State = ProcessorState.IDLE;
+                        }
                     }
                 }
                 clockCycle++;
@@ -165,6 +153,12 @@ namespace CPU
         }
     }
 
+
+
+    public class Scheduler
+    {
+
+    }
 
     public enum TaskState
     {
