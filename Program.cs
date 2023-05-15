@@ -37,14 +37,16 @@ namespace CPU
             TaskList sortedByRequestedTime = new SortByRequestedTime(sortedByCreationTime.Tasks);
             sortedByRequestedTime.SortTasks();
 
-            AssigningTasksToProcessors scheduler = new AssigningTasksToProcessors();
-            scheduler.SeparateTasksByPriority(sortedByRequestedTime, tasksQueue, listOfProcessors, ref clockCycle);
+            AssignTasksToProcessors scheduler = new AssignTasksToProcessors();
+            scheduler.SeparateTasksByPriority(sortedByRequestedTime, tasksQueue, ref clockCycle);
 
-            scheduler.TasksToProcessors(sortedByRequestedTime, tasksQueue, listOfProcessors, ref clockCycle);
+            Test test = new Test();
+            test.TasksToProcessors(sortedByRequestedTime, tasksQueue, listOfProcessors, ref clockCycle);
 
 
 
-
+            OutputData outputData = new OutputData();
+            outputData.PrintOutputData(listOfTasks, ref clockCycle);
         }
 
         static int clockCycle = 0;
@@ -101,7 +103,12 @@ namespace CPU
 
     /**********************************************************************/
 
-    public class AssignTasksToQueues
+    interface ITasksPriorityHandler
+    {
+        public void SeparateTasksByPriority(TaskList taskList, TasksQueue tasksQueue, ref int clockCycle);
+    }
+
+    public class AssignTasksToQueues : ITasksPriorityHandler
     {
         public void SeparateTasksByPriority(TaskList taskList, TasksQueue tasksQueue, ref int clockCycle)
         {
@@ -116,6 +123,7 @@ namespace CPU
                             tasksQueue.HighPriorityTasks.Enqueue(task);
                             task.State = TaskState.WAITING;
                             Console.WriteLine($"Task {task.Id} is added to the Queue at clock cycle: {clockCycle}.");
+                            Thread.Sleep(200);
 
                         }
                         else if (task.Priority == "Low")
@@ -123,6 +131,8 @@ namespace CPU
                             tasksQueue.LowPriorityTasks.Enqueue(task);
                             task.State = TaskState.WAITING;
                             Console.WriteLine($"Task {task.Id} is added to the Queue at clock cycle: {clockCycle}.");
+                            Thread.Sleep(200);
+
                         }
                     }
                 }
@@ -131,9 +141,9 @@ namespace CPU
         }
     }
 
-    public class AssigningTasksToProcessors
+    public class AssignTasksToProcessors : ITasksPriorityHandler
     {
-        public void SeparateTasksByPriority(TaskList taskList, TasksQueue tasksQueue, List<Processor> processors, ref int clockCycle)
+        public void SeparateTasksByPriority(TaskList taskList, TasksQueue tasksQueue, ref int clockCycle)
         {
             tasksQueue.HighPriorityTasks.Clear();
             tasksQueue.LowPriorityTasks.Clear();
@@ -151,22 +161,29 @@ namespace CPU
                 }
             }
         }
+    }
 
+    public class Test
+    {
         public void TasksToProcessors(TaskList taskList, TasksQueue tasksQueue, List<Processor> processors, ref int clockCycle)
         {
-            while (tasksQueue.HighPriorityTasks.Count != 0 || tasksQueue.LowPriorityTasks.Count != 0)
+            while (tasksQueue.HighPriorityTasks.Count != 0 || tasksQueue.LowPriorityTasks.Count != 0 || processors.Any(processor => processor.State == ProcessorState.BUSY))
             {
                 foreach (Processor processor in processors)
                 {
                     if (processor.State == ProcessorState.BUSY)
                     {
-                        processor.CurrentTask.RequestedTime--;
+                        processor.CurrentTask!.RequestedTime--;
                         if (processor.CurrentTask.RequestedTime == 0)
                         {
                             processor.CurrentTask.State = TaskState.COMPLETED;
                             processor.State = ProcessorState.IDLE;
-                            Console.WriteLine($"Task {processor.CurrentTask.Id} has finished! remaining {processor.CurrentTask.RequestedTime}");
+                            processor.CurrentTask.CompletionTime = clockCycle;
+                            ConsoleStyler.SetTextColor(ConsoleColor.Green);
+                            Console.WriteLine($"|-- Task [{processor.CurrentTask.Id}] Completed Successfully!");
+                            ConsoleStyler.ResetTextColor();
                             processor.CurrentTask = null;
+
                         }
                     }
                     else if (processor.State == ProcessorState.IDLE)
@@ -177,7 +194,8 @@ namespace CPU
                             processor.CurrentTask = task;
                             processor.State = ProcessorState.BUSY;
                             task.State = TaskState.EXECUTING;
-                            Console.WriteLine($"Task {task.Id} is assigned to Processor {processor.Id} at clock cycle: {clockCycle}.");
+                            Console.WriteLine($"|-- Task [{task.Id}] is assigned to Processor [{processor.Id}] at clock cyclc ===> {clockCycle}");
+                            Thread.Sleep(100);
                         }
                         else if (tasksQueue.LowPriorityTasks.Count > 0)
                         {
@@ -185,12 +203,30 @@ namespace CPU
                             processor.CurrentTask = task;
                             processor.State = ProcessorState.BUSY;
                             task.State = TaskState.EXECUTING;
-                            Console.WriteLine($"Task {task.Id} is assigned to Processor {processor.Id} at clock cycle: {clockCycle}.");
+                            Console.WriteLine($"|-- Task [{task.Id}] is assigned to Processor [{processor.Id}] at clock cycle ===> {clockCycle}");
+                            Thread.Sleep(100);
                         }
                     }
                 }
                 clockCycle++;
             }
+        }
+    }
+
+    public class OutputData
+    {
+        public void PrintOutputData(List<Task> tasks, ref int clockCycle)
+        {
+            Console.WriteLine("\n---------------------------OUTPUT DATA---------------------------\n");
+            ConsoleStyler.SetTextColor(ConsoleColor.Yellow);
+            Console.WriteLine("Task ID | Creation Time | Completion Time | Priority | State");
+            Console.WriteLine("--------|---------------|-----------------|----------|-----------");
+            foreach (Task task in tasks)
+            {
+                Console.WriteLine($"{task.Id,-7} | {task.CreationTime,-13} | {task.CompletionTime,-15} | {task.Priority,-8} | {task.State}");
+            }
+            Console.WriteLine($"\nTotal Clock Cycles: {clockCycle}");
+            ConsoleStyler.ResetTextColor();
         }
     }
 }
