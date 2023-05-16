@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Newtonsoft.Json;
 
 namespace CPU
 {
@@ -9,17 +10,16 @@ namespace CPU
     {
         static void Main(string[] args)
         {
-            // Reads JSON file and creates a list.
-            IFileReader tasksLoader = new TasksLoader();
-            List<Task> listOfTasks = tasksLoader.ReadTasksFromJson("Tasks.Json");
+            // Read data from json file. (Tasks List, Number of Processors).
+            string jsonFilePath = "Tasks.Json";
+            string json = File.ReadAllText(jsonFilePath);
+            var jsonObject = JsonConvert.DeserializeObject<dynamic>(json);
+            int numOfProcessors = jsonObject.Processors;
+            List<Task> listOfTasks = jsonObject.Tasks.ToObject<List<Task>>();
 
             // Sort tasks by creation time.
             TaskList sortedByCreationTime = new SortByCreationTime(listOfTasks);
             sortedByCreationTime.SortTasks();
-
-            // Get the input number of processors from the user.
-            IUserInputHandler userInputHandler = new UserInputHandler();
-            int numOfProcessors = userInputHandler.GetNumOfProcessorsFromUser();
 
             // Initialize a list of processors.
             IProcessorInitializer processorInitializer = new ProcessorInitializer();
@@ -34,7 +34,7 @@ namespace CPU
             /************************** Finished Assigning Tasks to Queues *****************************/
 
             // Sort tasks by requested time before assigning to processors.
-            TaskList sortedByRequestedTime = new SortByRequestedTime(sortedByCreationTime.Tasks);
+            TaskList sortedByRequestedTime = new SortByRequestedTime(listOfTasks);
             sortedByRequestedTime.SortTasks();
 
             // Assign tasks back to queues by priority.
@@ -58,7 +58,7 @@ namespace CPU
 
 
 /*
-    1- Output the data into a new file and save it in the IO folder.
+    1- Output the data into a new file and save it in the IO folder. // Done
     2- Learn about Unit Testing and apply them on the simulator.
     3- Learn about Class Diagrams and draw one for the simulator.  
 */
