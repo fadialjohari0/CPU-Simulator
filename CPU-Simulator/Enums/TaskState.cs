@@ -6,10 +6,4 @@ namespace CPU
         EXECUTING,
         COMPLETED
     }
-
-    public enum ProcessorState
-    {
-        BUSY,
-        IDLE
-    }
 }
