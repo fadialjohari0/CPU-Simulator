@@ -3,16 +3,16 @@
 
 Task ID | Creation Time | Completion Time | Priority | State
 --------|---------------|-----------------|----------|-----------
-T1      | 3             | 38              | Low      | COMPLETED
-T2      | 12            | 55              | Low      | COMPLETED
-T3      | 6             | 36              | Low      | COMPLETED
+T1      | 3             | 53              | Low      | COMPLETED
+T2      | 12            | 75              | Low      | COMPLETED
+T3      | 6             | 47              | Low      | COMPLETED
 T4      | 20            | 29              | High     | COMPLETED
-T5      | 2             | 62              | Low      | COMPLETED
-T6      | 15            | 34              | High     | COMPLETED
-T7      | 9             | 32              | High     | COMPLETED
-T8      | 18            | 42              | High     | COMPLETED
-T9      | 5             | 41              | Low      | COMPLETED
+T5      | 2             | 90              | Low      | COMPLETED
+T6      | 15            | 42              | High     | COMPLETED
+T7      | 9             | 38              | High     | COMPLETED
+T8      | 18            | 51              | High     | COMPLETED
+T9      | 5             | 58              | Low      | COMPLETED
 T10     | 23            | 31              | High     | COMPLETED
-T11     | 1             | 52              | Low      | COMPLETED
+T11     | 1             | 69              | Low      | COMPLETED
 
-Total Clock Cycles: 63
+Total Clock Cycles: 91

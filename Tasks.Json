@@ -1,5 +1,5 @@
 {
-  "Processors": 4,
+  "Processors": 2,
   "Tasks": [
     {
       "Id": "T1",

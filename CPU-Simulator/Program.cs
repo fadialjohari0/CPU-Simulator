@@ -13,10 +13,9 @@ namespace CPU
             IProcessorInitializer processorInitializer = new ProcessorInitializer();
             ITasksPriorityHandler tasksPriorityHandler = new TasksPriorityHandler();
             Scheduler scheduler = new Scheduler();
-            PrintOutputData outputData = new PrintOutputData();
             OutputFile outputFile = new OutputFile();
 
-            Simulator simulator = new Simulator(processorInitializer, tasksPriorityHandler, scheduler, outputData, outputFile);
+            Simulator simulator = new Simulator(processorInitializer, tasksPriorityHandler, scheduler, outputFile);
             simulator.Start();
         }
     }
@@ -27,20 +26,17 @@ namespace CPU
         private IProcessorInitializer _processorInitializer;
         private ITasksPriorityHandler _tasksPriorityHandler;
         private Scheduler _scheduler;
-        private PrintOutputData _outputData;
         private OutputFile _outputFile;
 
         public Simulator(
             IProcessorInitializer processorInitializer,
             ITasksPriorityHandler tasksPriorityHandler,
             Scheduler scheduler,
-            PrintOutputData outputData,
             OutputFile outputFile)
         {
             _processorInitializer = processorInitializer;
             _tasksPriorityHandler = tasksPriorityHandler;
             _scheduler = scheduler;
-            _outputData = outputData;
             _outputFile = outputFile;
         }
 
@@ -54,7 +50,6 @@ namespace CPU
 
             AssignTasksToQueues2(sortedByRequestedTime, tasksQueue);
             _scheduler.AssignTasksToProcessors(sortedByRequestedTime, tasksQueue, listOfProcessors, ref clockCycle);
-            _outputData.PrintData(listOfTasks, ref clockCycle);
             _outputFile.WriteOutputFile(listOfTasks, ref clockCycle);
         }
         private (int, List<Task>) ReadData()
@@ -105,11 +100,6 @@ namespace CPU
         {
             Scheduler scheduler = new Scheduler();
             scheduler.AssignTasksToProcessors(sortedByRequestedTime, tasksQueue, listOfProcessors, ref clockCycle);
-        }
-        private void PrintData(List<Task> listOfTasks)
-        {
-            PrintOutputData outputData = new PrintOutputData();
-            outputData.PrintData(listOfTasks, ref clockCycle);
         }
 
         private void WriteOutputFile(List<Task> listOfTasks)
@@ -222,15 +212,11 @@ namespace CPU
                         {
                             tasksQueue.HighPriorityTasks.Enqueue(task);
                             task.State = TaskState.WAITING;
-                            Console.WriteLine($"Task [{task.Id}] is added to the Queue at clock cycle: [{clockCycle}]");
-                            Thread.Sleep(200);
                         }
                         else if (task.Priority == "Low")
                         {
                             tasksQueue.LowPriorityTasks.Enqueue(task);
                             task.State = TaskState.WAITING;
-                            Console.WriteLine($"Task [{task.Id}] is added to the Queue at clock cycle: [{clockCycle}]");
-                            Thread.Sleep(200);
                         }
                     }
                 }
@@ -274,7 +260,6 @@ namespace CPU
                             processor.CurrentTask.State = TaskState.COMPLETED;
                             processor.State = ProcessorState.IDLE;
                             processor.CurrentTask.CompletionTime = clockCycle;
-                            Console.WriteLine($"|-- Task [{processor.CurrentTask.Id}] Completed Successfully!");
                             processor.CurrentTask = null;
                         }
                     }
@@ -286,8 +271,6 @@ namespace CPU
                             processor.CurrentTask = task;
                             processor.State = ProcessorState.BUSY;
                             task.State = TaskState.EXECUTING;
-                            Console.WriteLine($"|-- Task [{task.Id}] is assigned to Processor [{processor.Id}] at clock cyclc --> {clockCycle}");
-                            Thread.Sleep(100);
                         }
                         else if (tasksQueue.LowPriorityTasks.Count > 0)
                         {
@@ -295,28 +278,11 @@ namespace CPU
                             processor.CurrentTask = task;
                             processor.State = ProcessorState.BUSY;
                             task.State = TaskState.EXECUTING;
-                            Console.WriteLine($"|-- Task [{task.Id}] is assigned to Processor [{processor.Id}] at clock cycle --> {clockCycle}");
-                            Thread.Sleep(100);
                         }
                     }
                 }
                 clockCycle++;
             }
-        }
-    }
-
-    public class PrintOutputData
-    {
-        public void PrintData(List<Task> tasks, ref int clockCycle)
-        {
-            Console.WriteLine("\n---------------------------OUTPUT DATA---------------------------\n");
-            Console.WriteLine("Task ID | Creation Time | Completion Time | Priority | State");
-            Console.WriteLine("--------|---------------|-----------------|----------|-----------");
-            foreach (Task task in tasks)
-            {
-                Console.WriteLine($"{task.Id,-7} | {task.CreationTime,-13} | {task.CompletionTime,-15} | {task.Priority,-8} | {task.State}");
-            }
-            Console.WriteLine($"\nTotal Clock Cycles: {clockCycle}");
         }
     }
 
