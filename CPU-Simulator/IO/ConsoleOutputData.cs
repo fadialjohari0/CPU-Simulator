@@ -1,6 +1,5 @@
 namespace CPU
 {
-
     public class PrintOutputData
     {
         public void PrintData(List<Task> tasks, ref int clockCycle)

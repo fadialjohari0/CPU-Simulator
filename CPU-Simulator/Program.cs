@@ -48,6 +48,9 @@ namespace CPU
             // Print output data.
             PrintOutputData outputData = new PrintOutputData();
             outputData.PrintData(listOfTasks, ref clockCycle);
+
+            OutputFile outputFile = new OutputFile();
+            outputFile.WriteOutputFile(listOfTasks, ref clockCycle);
         }
         static int clockCycle = 0;
     }
